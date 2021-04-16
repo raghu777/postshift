@@ -24,5 +24,12 @@ namespace :postshift do
       Postshift::Schema.restore
       puts '*** Completed Postshift Schema Restore ***'
     end
+
+    desc 'Restores db/postshift_schema.sql file to Redshift database'
+    task migrate: :connect do
+      puts '*** Starting Postshift Schema Restore ***'
+      ActiveRecord::Tasks::DatabaseTasks.migrate
+      puts '*** Completed Postshift Schema Restore ***'
+    end
   end
 end
