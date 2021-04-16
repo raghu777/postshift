@@ -44,6 +44,14 @@ module Postshift
         ddl_results(view_ddl_sql).each_row do |row|
           file.puts(row)
         end
+        schemas.each do |schema|
+          file.puts("INSERT INTO #{schema}.schema_migrations (version) VALUES")
+          migrations = []
+          ddl_results(migrations_sql(schema)).each_row do |row|
+            migrations << "('#{row.first}')"
+          end
+          file.puts(migrations.join(",\n") + ";")
+        end
       end
     end
 
@@ -79,11 +87,19 @@ module Postshift
       %w(public)
     end
 
+    def self.migrations_sql(schema)
+        <<-SQL
+          SELECT  version
+          FROM    #{schema}.schema_migrations
+        SQL
+    end
+
     def self.tbl_ddl_sql
       <<-SQL
         SELECT  ddl
         FROM    admin.v_generate_tbl_ddl
         WHERE   schemaname IN ($1)
+            AND (ddl NOT ilike '%owner to%' AND ddl NOT ilike '--DROP TABLE%')
         ORDER BY tablename ASC, seq ASC
       SQL
     end
@@ -93,6 +109,7 @@ module Postshift
         SELECT  ddl
         FROM    admin.v_generate_view_ddl
         WHERE   schemaname IN ($1)
+            AND (ddl NOT ilike '%owner to%' AND ddl not ilike '--DROP VIEW%')
         ORDER BY viewname ASC
       SQL
     end
